@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hollow Forge - Character Creator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel - Character Preview -->
+        <div class="preview-panel">
+            <div class="panel-frame">
+                <div class="class-badge" id="classBadge">HOLLOW</div>
+                <div class="character-viewport">
+                    <canvas id="backgroundCanvas" width="300" height="400"></canvas>
+                    <canvas id="characterCanvas" width="300" height="400"></canvas>
+                    <div class="viewport-overlay"></div>
+                </div>
+                <button class="randomize-btn" id="randomizeBtn">
+                    <span class="dice-icon">⚄</span> RANDOMIZE
+                </button>
+            </div>
+
+            <div class="export-section">
+                <button class="export-btn" id="downloadBtn">
+                    <span class="btn-icon">↓</span> DOWNLOAD
+                </button>
+                <button class="export-btn" id="copyBtn">
+                    <span class="btn-icon">⎘</span> COPY
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel - Customization -->
+        <div class="customization-panel">
+            <!-- Tabs -->
+            <div class="tabs-container">
+                <button class="tab active" data-tab="body">BODY</button>
+                <button class="tab" data-tab="head">HEAD</button>
+                <button class="tab" data-tab="armor">ARMOR</button>
+                <button class="tab" data-tab="weapons">WEAPONS</button>
+                <button class="tab" data-tab="extras">EXTRAS</button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="tab-content">
+                <!-- BODY Tab -->
+                <div class="tab-pane active" id="body-tab">
+                    <div class="option-section">
+                        <h3 class="section-title">Skin</h3>
+                        <div class="options-grid" id="skinOptions"></div>
+                    </div>
+                    <div class="option-section">
+                        <h3 class="section-title">Build</h3>
+                        <div class="options-grid" id="buildOptions"></div>
+                    </div>
+                </div>
+
+                <!-- HEAD Tab -->
+                <div class="tab-pane" id="head-tab">
+                    <div class="option-section">
+                        <h3 class="section-title">Face</h3>
+                        <div class="options-grid" id="faceOptions"></div>
+                    </div>
+                    <div class="option-section">
+                        <h3 class="section-title">Hair</h3>
+                        <div class="options-grid" id="hairOptions"></div>
+                    </div>
+                    <div class="option-section">
+                        <h3 class="section-title">Helm</h3>
+                        <div class="options-grid" id="helmOptions"></div>
+                    </div>
+                </div>
+
+                <!-- ARMOR Tab -->
+                <div class="tab-pane" id="armor-tab">
+                    <div class="option-section">
+                        <h3 class="section-title">Chest</h3>
+                        <div class="options-grid" id="chestOptions"></div>
+                    </div>
+                    <div class="option-section">
+                        <h3 class="section-title">Legs</h3>
+                        <div class="options-grid" id="legsOptions"></div>
+                    </div>
+                    <div class="option-section">
+                        <h3 class="section-title">Boots</h3>
+                        <div class="options-grid" id="bootsOptions"></div>
+                    </div>
+                    <div class="option-section">
+                        <h3 class="section-title">Cape</h3>
+                        <div class="options-grid" id="capeOptions"></div>
+                    </div>
+                </div>
+
+                <!-- WEAPONS Tab -->
+                <div class="tab-pane" id="weapons-tab">
+                    <div class="option-section">
+                        <h3 class="section-title">Right Hand</h3>
+                        <div class="options-grid" id="weaponOptions"></div>
+                    </div>
+                    <div class="option-section">
+                        <h3 class="section-title">Left Hand</h3>
+                        <div class="options-grid" id="shieldOptions"></div>
+                    </div>
+                </div>
+
+                <!-- EXTRAS Tab -->
+                <div class="tab-pane" id="extras-tab">
+                    <div class="option-section">
+                        <h3 class="section-title">Scars & Marks</h3>
+                        <div class="options-grid" id="scarsOptions"></div>
+                    </div>
+                    <div class="option-section">
+                        <h3 class="section-title">Effects</h3>
+                        <div class="options-grid" id="effectsOptions"></div>
+                    </div>
+                    <div class="option-section">
+                        <h3 class="section-title">Background</h3>
+                        <div class="options-grid" id="backgroundOptions"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Action -->
+            <div class="bottom-action">
+                <button class="begin-btn" id="beginBtn">EMBRACE THE DARK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification hidden">
+        <span id="notificationText"></span>
+    </div>
+
+    <script src="sprites.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
