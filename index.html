@@ -6,136 +6,133 @@
     <title>Hollow Forge - Character Creator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
+    <div class="app-container">
         <!-- Left Panel - Character Preview -->
         <div class="preview-panel">
-            <div class="panel-frame">
-                <div class="class-badge" id="classBadge">HOLLOW</div>
-                <div class="character-viewport">
-                    <canvas id="backgroundCanvas" width="300" height="400"></canvas>
-                    <canvas id="characterCanvas" width="300" height="400"></canvas>
-                    <div class="viewport-overlay"></div>
+            <div class="preview-frame">
+                <div class="class-badge" id="classBadge">UNDEAD</div>
+                <div class="character-display">
+                    <canvas id="gameCanvas"></canvas>
                 </div>
                 <button class="randomize-btn" id="randomizeBtn">
-                    <span class="dice-icon">⚄</span> RANDOMIZE
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M13 1h-2v2h2v2h2V3a2 2 0 0 0-2-2zM3 1a2 2 0 0 0-2 2v2h2V3h2V1H3zm10 10h2v2a2 2 0 0 1-2 2h-2v-2h2v-2zM3 13H1v-2h2v2H1v2h2a2 2 0 0 0 2-2v-2H3v2zm4-6a1 1 0 1 1 2 0 1 1 0 0 1-2 0zm-3 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm6 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    RANDOMIZE
                 </button>
             </div>
 
-            <div class="export-section">
-                <button class="export-btn" id="downloadBtn">
-                    <span class="btn-icon">↓</span> DOWNLOAD
+            <div class="action-buttons">
+                <button class="action-btn download-btn" id="downloadBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    DOWNLOAD
                 </button>
-                <button class="export-btn" id="copyBtn">
-                    <span class="btn-icon">⎘</span> COPY
+                <button class="action-btn copy-btn" id="copyBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    COPY
                 </button>
             </div>
         </div>
 
         <!-- Right Panel - Customization -->
-        <div class="customization-panel">
-            <!-- Tabs -->
-            <div class="tabs-container">
-                <button class="tab active" data-tab="body">BODY</button>
-                <button class="tab" data-tab="head">HEAD</button>
-                <button class="tab" data-tab="armor">ARMOR</button>
-                <button class="tab" data-tab="weapons">WEAPONS</button>
-                <button class="tab" data-tab="extras">EXTRAS</button>
-            </div>
+        <div class="editor-panel">
+            <nav class="tab-nav">
+                <button class="tab-btn active" data-tab="body">BODY</button>
+                <button class="tab-btn" data-tab="head">HEAD</button>
+                <button class="tab-btn" data-tab="armor">ARMOR</button>
+                <button class="tab-btn" data-tab="weapons">WEAPONS</button>
+                <button class="tab-btn" data-tab="effects">EFFECTS</button>
+            </nav>
 
-            <!-- Tab Content -->
-            <div class="tab-content">
-                <!-- BODY Tab -->
-                <div class="tab-pane active" id="body-tab">
-                    <div class="option-section">
-                        <h3 class="section-title">Skin</h3>
-                        <div class="options-grid" id="skinOptions"></div>
-                    </div>
-                    <div class="option-section">
-                        <h3 class="section-title">Build</h3>
-                        <div class="options-grid" id="buildOptions"></div>
-                    </div>
+            <div class="tab-panels">
+                <!-- Body Tab -->
+                <div class="tab-panel active" data-panel="body">
+                    <section class="option-section">
+                        <h3>Skin Tone</h3>
+                        <div class="option-grid" id="skinGrid"></div>
+                    </section>
+                    <section class="option-section">
+                        <h3>Body Type</h3>
+                        <div class="option-grid" id="bodyGrid"></div>
+                    </section>
                 </div>
 
-                <!-- HEAD Tab -->
-                <div class="tab-pane" id="head-tab">
-                    <div class="option-section">
-                        <h3 class="section-title">Face</h3>
-                        <div class="options-grid" id="faceOptions"></div>
-                    </div>
-                    <div class="option-section">
-                        <h3 class="section-title">Hair</h3>
-                        <div class="options-grid" id="hairOptions"></div>
-                    </div>
-                    <div class="option-section">
-                        <h3 class="section-title">Helm</h3>
-                        <div class="options-grid" id="helmOptions"></div>
-                    </div>
+                <!-- Head Tab -->
+                <div class="tab-panel" data-panel="head">
+                    <section class="option-section">
+                        <h3>Face</h3>
+                        <div class="option-grid" id="faceGrid"></div>
+                    </section>
+                    <section class="option-section">
+                        <h3>Hair</h3>
+                        <div class="option-grid" id="hairGrid"></div>
+                    </section>
+                    <section class="option-section">
+                        <h3>Helmet</h3>
+                        <div class="option-grid" id="helmetGrid"></div>
+                    </section>
                 </div>
 
-                <!-- ARMOR Tab -->
-                <div class="tab-pane" id="armor-tab">
-                    <div class="option-section">
-                        <h3 class="section-title">Chest</h3>
-                        <div class="options-grid" id="chestOptions"></div>
-                    </div>
-                    <div class="option-section">
-                        <h3 class="section-title">Legs</h3>
-                        <div class="options-grid" id="legsOptions"></div>
-                    </div>
-                    <div class="option-section">
-                        <h3 class="section-title">Boots</h3>
-                        <div class="options-grid" id="bootsOptions"></div>
-                    </div>
-                    <div class="option-section">
-                        <h3 class="section-title">Cape</h3>
-                        <div class="options-grid" id="capeOptions"></div>
-                    </div>
+                <!-- Armor Tab -->
+                <div class="tab-panel" data-panel="armor">
+                    <section class="option-section">
+                        <h3>Chest Armor</h3>
+                        <div class="option-grid" id="chestGrid"></div>
+                    </section>
+                    <section class="option-section">
+                        <h3>Leg Armor</h3>
+                        <div class="option-grid" id="legsGrid"></div>
+                    </section>
+                    <section class="option-section">
+                        <h3>Cape</h3>
+                        <div class="option-grid" id="capeGrid"></div>
+                    </section>
                 </div>
 
-                <!-- WEAPONS Tab -->
-                <div class="tab-pane" id="weapons-tab">
-                    <div class="option-section">
-                        <h3 class="section-title">Right Hand</h3>
-                        <div class="options-grid" id="weaponOptions"></div>
-                    </div>
-                    <div class="option-section">
-                        <h3 class="section-title">Left Hand</h3>
-                        <div class="options-grid" id="shieldOptions"></div>
-                    </div>
+                <!-- Weapons Tab -->
+                <div class="tab-panel" data-panel="weapons">
+                    <section class="option-section">
+                        <h3>Main Hand</h3>
+                        <div class="option-grid" id="weaponGrid"></div>
+                    </section>
+                    <section class="option-section">
+                        <h3>Off Hand</h3>
+                        <div class="option-grid" id="shieldGrid"></div>
+                    </section>
                 </div>
 
-                <!-- EXTRAS Tab -->
-                <div class="tab-pane" id="extras-tab">
-                    <div class="option-section">
-                        <h3 class="section-title">Scars & Marks</h3>
-                        <div class="options-grid" id="scarsOptions"></div>
-                    </div>
-                    <div class="option-section">
-                        <h3 class="section-title">Effects</h3>
-                        <div class="options-grid" id="effectsOptions"></div>
-                    </div>
-                    <div class="option-section">
-                        <h3 class="section-title">Background</h3>
-                        <div class="options-grid" id="backgroundOptions"></div>
-                    </div>
+                <!-- Effects Tab -->
+                <div class="tab-panel" data-panel="effects">
+                    <section class="option-section">
+                        <h3>Aura</h3>
+                        <div class="option-grid" id="auraGrid"></div>
+                    </section>
+                    <section class="option-section">
+                        <h3>Background</h3>
+                        <div class="option-grid" id="bgGrid"></div>
+                    </section>
                 </div>
             </div>
 
-            <!-- Bottom Action -->
-            <div class="bottom-action">
+            <div class="panel-footer">
                 <button class="begin-btn" id="beginBtn">EMBRACE THE DARK</button>
             </div>
         </div>
     </div>
 
-    <!-- Notification -->
-    <div id="notification" class="notification hidden">
-        <span id="notificationText"></span>
-    </div>
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
 
     <script src="sprites.js"></script>
     <script src="app.js"></script>

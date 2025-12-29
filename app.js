@@ -1,803 +1,739 @@
-// Hollow Forge - Dark Fantasy Character Creator
-// Main Application
+// ========================================
+// HOLLOW FORGE - Main Application
+// High Quality Character Creator
+// ========================================
 
-class CharacterCreator {
+class HollowForge {
     constructor() {
-        this.characterCanvas = document.getElementById('characterCanvas');
-        this.backgroundCanvas = document.getElementById('backgroundCanvas');
-        this.charCtx = this.characterCanvas.getContext('2d');
-        this.bgCtx = this.backgroundCanvas.getContext('2d');
+        // Get canvas and set size
+        this.canvas = document.getElementById('gameCanvas');
+        this.canvas.width = CANVAS_WIDTH;
+        this.canvas.height = CANVAS_HEIGHT;
+        this.ctx = this.canvas.getContext('2d');
+        this.ctx.imageSmoothingEnabled = false;
 
-        // Disable image smoothing for pixel art
-        this.charCtx.imageSmoothingEnabled = false;
-        this.bgCtx.imageSmoothingEnabled = false;
+        // Create offscreen buffer
+        this.buffer = new PixelCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
 
         // Character state
         this.character = {
             skin: 'hollow',
-            build: 'normal',
+            body: 'normal',
             face: 'normal',
             hair: 'none',
-            helm: 'none',
+            helmet: 'none',
             chest: 'leather',
-            legs: 'leather',
-            boots: 'leather',
+            legs: 'pants',
             cape: 'none',
             weapon: 'sword',
             shield: 'none',
-            scars: 'none',
-            effects: 'none',
+            aura: 'none',
             background: 'bonfire'
         };
 
         // Animation state
-        this.animationFrame = 0;
         this.time = 0;
-        this.lastTime = 0;
         this.breathOffset = 0;
-        this.isAnimating = true;
 
         // Initialize
-        this.initializeTabs();
-        this.initializeOptions();
-        this.initializeButtons();
+        this.setupTabs();
+        this.setupOptions();
+        this.setupButtons();
         this.startAnimation();
+        this.updateBadge();
     }
 
-    initializeTabs() {
-        const tabs = document.querySelectorAll('.tab');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                // Remove active from all tabs and panes
-                tabs.forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    // =====================================
+    // UI SETUP
+    // =====================================
 
-                // Add active to clicked tab and corresponding pane
-                tab.classList.add('active');
-                const paneId = tab.dataset.tab + '-tab';
-                document.getElementById(paneId).classList.add('active');
+    setupTabs() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.dataset.tab;
+
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabPanels.forEach(p => p.classList.remove('active'));
+
+                btn.classList.add('active');
+                document.querySelector(`[data-panel="${tabId}"]`).classList.add('active');
             });
         });
     }
 
-    initializeOptions() {
-        // Map option categories to their containers and character properties
-        const optionMappings = [
-            { containerId: 'skinOptions', options: CHARACTER_OPTIONS.skin, property: 'skin' },
-            { containerId: 'buildOptions', options: CHARACTER_OPTIONS.build, property: 'build' },
-            { containerId: 'faceOptions', options: CHARACTER_OPTIONS.face, property: 'face' },
-            { containerId: 'hairOptions', options: CHARACTER_OPTIONS.hair, property: 'hair' },
-            { containerId: 'helmOptions', options: CHARACTER_OPTIONS.helm, property: 'helm' },
-            { containerId: 'chestOptions', options: CHARACTER_OPTIONS.chest, property: 'chest' },
-            { containerId: 'legsOptions', options: CHARACTER_OPTIONS.legs, property: 'legs' },
-            { containerId: 'bootsOptions', options: CHARACTER_OPTIONS.boots, property: 'boots' },
-            { containerId: 'capeOptions', options: CHARACTER_OPTIONS.cape, property: 'cape' },
-            { containerId: 'weaponOptions', options: CHARACTER_OPTIONS.weapon, property: 'weapon' },
-            { containerId: 'shieldOptions', options: CHARACTER_OPTIONS.shield, property: 'shield' },
-            { containerId: 'scarsOptions', options: CHARACTER_OPTIONS.scars, property: 'scars' },
-            { containerId: 'effectsOptions', options: CHARACTER_OPTIONS.effects, property: 'effects' },
-            { containerId: 'backgroundOptions', options: CHARACTER_OPTIONS.background, property: 'background' }
+    setupOptions() {
+        const mappings = [
+            { gridId: 'skinGrid', options: OPTIONS.skin, prop: 'skin' },
+            { gridId: 'bodyGrid', options: OPTIONS.body, prop: 'body' },
+            { gridId: 'faceGrid', options: OPTIONS.face, prop: 'face' },
+            { gridId: 'hairGrid', options: OPTIONS.hair, prop: 'hair' },
+            { gridId: 'helmetGrid', options: OPTIONS.helmet, prop: 'helmet' },
+            { gridId: 'chestGrid', options: OPTIONS.chest, prop: 'chest' },
+            { gridId: 'legsGrid', options: OPTIONS.legs, prop: 'legs' },
+            { gridId: 'capeGrid', options: OPTIONS.cape, prop: 'cape' },
+            { gridId: 'weaponGrid', options: OPTIONS.weapon, prop: 'weapon' },
+            { gridId: 'shieldGrid', options: OPTIONS.shield, prop: 'shield' },
+            { gridId: 'auraGrid', options: OPTIONS.aura, prop: 'aura' },
+            { gridId: 'bgGrid', options: OPTIONS.background, prop: 'background' }
         ];
 
-        optionMappings.forEach(mapping => {
-            this.createOptionCards(mapping.containerId, mapping.options, mapping.property);
+        mappings.forEach(({ gridId, options, prop }) => {
+            this.createOptionGrid(gridId, options, prop);
         });
     }
 
-    createOptionCards(containerId, options, property) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
+    createOptionGrid(gridId, options, prop) {
+        const grid = document.getElementById(gridId);
+        if (!grid) return;
 
-        options.forEach(option => {
+        options.forEach(opt => {
             const card = document.createElement('div');
-            card.className = 'option-card' + (option.id === 'none' ? ' none-option' : '');
-            card.dataset.id = option.id;
+            card.className = 'option-card' + (opt.id === 'none' ? ' none-card' : '');
+            card.dataset.id = opt.id;
 
-            if (this.character[property] === option.id) {
+            if (this.character[prop] === opt.id) {
                 card.classList.add('selected');
             }
 
-            // Create thumbnail canvas
-            if (option.id !== 'none' || property === 'background') {
+            // Create thumbnail
+            if (opt.id !== 'none') {
                 const thumbCanvas = document.createElement('canvas');
                 thumbCanvas.width = 32;
                 thumbCanvas.height = 32;
-                const thumbCtx = thumbCanvas.getContext('2d');
-                thumbCtx.imageSmoothingEnabled = false;
-
-                this.drawThumbnail(thumbCtx, property, option);
+                this.drawThumbnail(thumbCanvas, prop, opt.id);
                 card.appendChild(thumbCanvas);
             }
 
-            // Create label
             const label = document.createElement('span');
-            label.className = 'option-label';
-            label.textContent = option.name;
+            label.className = 'option-name';
+            label.textContent = opt.name;
             card.appendChild(label);
 
-            // Click handler
             card.addEventListener('click', () => {
-                this.selectOption(property, option.id, container);
-                this.triggerReaction();
+                this.selectOption(prop, opt.id, grid);
             });
 
-            container.appendChild(card);
+            grid.appendChild(card);
         });
     }
 
-    drawThumbnail(ctx, property, option) {
+    drawThumbnail(canvas, prop, id) {
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
         ctx.clearRect(0, 0, 32, 32);
-        spriteRenderer.pixelSize = 1;
 
-        // Position for thumbnail (centered in 32x32)
-        const baseX = 16;
-        const baseY = 4;
+        const pc = new PixelCanvas(32, 32);
 
-        switch (property) {
+        switch (prop) {
             case 'skin':
-                // Draw small body preview
-                const p = PALETTES.skin[option.palette] || PALETTES.skin.hollow;
-                // Head
-                ctx.fillStyle = p.outline;
-                ctx.fillRect(12, 4, 8, 8);
-                ctx.fillStyle = p.base;
-                ctx.fillRect(13, 5, 6, 6);
-                // Body
-                ctx.fillStyle = p.shadow;
-                ctx.fillRect(11, 12, 10, 10);
-                ctx.fillStyle = p.base;
-                ctx.fillRect(12, 13, 8, 8);
+                const skinPal = SKIN_PALETTES[id] || SKIN_PALETTES.hollow;
+                // Simple body preview
+                const miniBody = [
+                    [0,0,0,1,1,1,1,0,0,0],
+                    [0,0,1,2,2,2,2,1,0,0],
+                    [0,0,1,2,3,3,2,1,0,0],
+                    [0,0,1,2,3,3,2,1,0,0],
+                    [0,0,0,1,2,2,1,0,0,0],
+                    [0,0,0,0,1,1,0,0,0,0],
+                    [0,0,0,1,2,2,1,0,0,0],
+                    [0,0,1,2,3,3,2,1,0,0],
+                    [0,0,1,2,3,3,2,1,0,0],
+                    [0,0,1,2,3,3,2,1,0,0],
+                    [0,0,0,1,2,2,1,0,0,0],
+                    [0,0,0,1,1,1,1,0,0,0]
+                ];
+                pc.drawSprite(11, 10, miniBody, skinPal);
                 break;
 
-            case 'build':
-                // Silhouette showing build type
-                const width = option.id === 'slim' ? 6 : (option.id === 'heavy' ? 12 : 8);
-                ctx.fillStyle = '#5a5a58';
-                ctx.fillRect(16 - width/2, 8, width, 16);
-                ctx.fillRect(14, 4, 4, 6);
-                break;
-
-            case 'face':
-                spriteRenderer.drawFace(ctx, option.id, 'hollow', baseX, baseY + 2);
-                // Draw head outline for context
-                ctx.fillStyle = PALETTES.skin.hollow.outline;
-                ctx.fillRect(12, 6, 8, 8);
-                ctx.fillStyle = PALETTES.skin.hollow.base;
-                ctx.fillRect(13, 7, 6, 6);
-                spriteRenderer.drawFace(ctx, option.id, 'hollow', 16, 6);
-                break;
-
-            case 'hair':
-                if (option.id !== 'none') {
-                    // Draw head first
-                    ctx.fillStyle = PALETTES.skin.hollow.outline;
-                    ctx.fillRect(12, 8, 8, 8);
-                    ctx.fillStyle = PALETTES.skin.hollow.base;
-                    ctx.fillRect(13, 9, 6, 6);
-                    spriteRenderer.drawHair(ctx, option.id, option.color || 'black', 16, 8);
+            case 'body':
+                if (SPRITES.body[id]) {
+                    // Draw scaled down body
+                    const pal = ['#222', '#444', '#666', '#888', '#aaa'];
+                    this.drawScaledSprite(pc, 4, 2, SPRITES.body[id], pal, 0.6);
                 }
                 break;
 
-            case 'helm':
-                if (option.id !== 'none') {
-                    spriteRenderer.drawHelm(ctx, option.id, 16, 6);
+            case 'face':
+                const facePal = ['#111', '#602020', '#ffa030', '#333', '#fff'];
+                pc.rect(10, 10, 12, 12, '#6b5a4a');
+                if (SPRITES.face[id]) {
+                    pc.drawSprite(12, 12, SPRITES.face[id], facePal);
+                }
+                break;
+
+            case 'hair':
+                if (SPRITES.hair[id]) {
+                    pc.drawSprite(8, 10, SPRITES.hair[id], HAIR_PALETTES.brown);
+                }
+                break;
+
+            case 'helmet':
+                if (SPRITES.helmet[id]) {
+                    const helmetPal = id === 'crown' ? METAL_PALETTES.gold :
+                                      id === 'hood' ? FABRIC_PALETTES.brown :
+                                      METAL_PALETTES.iron;
+                    pc.drawSprite(7, 8, SPRITES.helmet[id], helmetPal);
                 }
                 break;
 
             case 'chest':
-                // Show chest armor
-                const bodyWidth = 10;
-                spriteRenderer.drawChest(ctx, option.id, 16, 2, bodyWidth);
+                if (SPRITES.chest[id]) {
+                    const chestPal = this.getArmorPalette(id);
+                    pc.drawSprite(6, 9, SPRITES.chest[id], chestPal);
+                }
                 break;
 
             case 'legs':
-                spriteRenderer.drawLegs(ctx, option.id, 16, 0);
-                break;
-
-            case 'boots':
-                spriteRenderer.drawBoots(ctx, option.id, 'hollow', 16, 2);
+                const legsPal = id === 'plate' || id === 'chain' ? METAL_PALETTES.iron : FABRIC_PALETTES.brown;
+                pc.rect(11, 10, 4, 14, legsPal[1]);
+                pc.rect(17, 10, 4, 14, legsPal[1]);
+                pc.rect(12, 11, 2, 12, legsPal[2]);
+                pc.rect(18, 11, 2, 12, legsPal[2]);
                 break;
 
             case 'cape':
-                if (option.id !== 'none') {
-                    spriteRenderer.drawCape(ctx, option.id, 16, 4, true);
+                if (SPRITES.cape[id]) {
+                    const capePal = id === 'royal'
+                        ? [...FABRIC_PALETTES.red.slice(0, 3), METAL_PALETTES.gold[2], METAL_PALETTES.gold[3]]
+                        : FABRIC_PALETTES.black;
+                    pc.drawSprite(4, 6, SPRITES.cape[id], capePal);
                 }
                 break;
 
             case 'weapon':
-                if (option.id !== 'none') {
-                    spriteRenderer.drawWeapon(ctx, option.id, 8, 2);
+                if (SPRITES.weapon[id]) {
+                    const weaponPal = id === 'staff'
+                        ? [...FABRIC_PALETTES.brown.slice(0, 2), '#6040a0', '#9060d0', '#c080ff']
+                        : METAL_PALETTES.steel;
+                    pc.drawSprite(11, 0, SPRITES.weapon[id], weaponPal);
                 }
                 break;
 
             case 'shield':
-                if (option.id !== 'none') {
-                    spriteRenderer.drawShield(ctx, option.id, 20, 4);
+                if (SPRITES.shield[id]) {
+                    const shieldPal = id === 'crest' ? FABRIC_PALETTES.red : METAL_PALETTES.iron;
+                    pc.drawSprite(9, 8, SPRITES.shield[id], shieldPal);
                 }
                 break;
 
-            case 'scars':
-                if (option.id !== 'none') {
-                    // Draw face with scar
-                    ctx.fillStyle = PALETTES.skin.hollow.outline;
-                    ctx.fillRect(12, 6, 8, 8);
-                    ctx.fillStyle = PALETTES.skin.hollow.base;
-                    ctx.fillRect(13, 7, 6, 6);
-                    spriteRenderer.drawFace(ctx, 'normal', 'hollow', 16, 6);
-                    spriteRenderer.drawScars(ctx, option.id, 16, 6);
-                }
-                break;
-
-            case 'effects':
-                if (option.id !== 'none') {
-                    spriteRenderer.drawEffects(ctx, option.id, 16, 8, performance.now());
+            case 'aura':
+                const auraCols = {
+                    ember: ['#400', '#800', '#f60', '#ff0', '#fff'],
+                    souls: ['#004', '#048', '#08f', '#4cf', '#fff'],
+                    curse: ['#204', '#408', '#60c', '#a4f', '#f8f'],
+                    holy: ['#440', '#880', '#ff0', '#fff', '#fff']
+                };
+                if (auraCols[id]) {
+                    const cols = auraCols[id];
+                    pc.rect(12, 12, 8, 8, cols[2]);
+                    pc.pixel(10, 10, cols[3]);
+                    pc.pixel(22, 12, cols[3]);
+                    pc.pixel(14, 8, cols[1]);
+                    pc.pixel(10, 20, cols[1]);
+                    pc.pixel(24, 18, cols[2]);
                 }
                 break;
 
             case 'background':
-                this.drawBackgroundThumbnail(ctx, option.id);
+                this.drawMiniBackground(pc, id);
                 break;
         }
+
+        ctx.drawImage(pc.canvas, 0, 0);
     }
 
-    drawBackgroundThumbnail(ctx, bgId) {
-        switch (bgId) {
-            case 'void':
-                const voidGrad = ctx.createRadialGradient(16, 16, 0, 16, 16, 20);
-                voidGrad.addColorStop(0, '#1a1815');
-                voidGrad.addColorStop(1, '#0a0908');
-                ctx.fillStyle = voidGrad;
-                ctx.fillRect(0, 0, 32, 32);
-                break;
+    drawScaledSprite(pc, x, y, data, palette, scale) {
+        const h = data.length;
+        const w = data[0] ? data[0].length : 0;
 
-            case 'bonfire':
-                ctx.fillStyle = '#0a0908';
-                ctx.fillRect(0, 0, 32, 32);
-                // Fire glow
-                const fireGrad = ctx.createRadialGradient(16, 24, 2, 16, 24, 12);
-                fireGrad.addColorStop(0, 'rgba(255, 147, 41, 0.6)');
-                fireGrad.addColorStop(1, 'transparent');
-                ctx.fillStyle = fireGrad;
-                ctx.fillRect(0, 0, 32, 32);
-                // Flame
-                ctx.fillStyle = '#ff8030';
-                ctx.fillRect(14, 20, 4, 6);
-                ctx.fillStyle = '#ffa050';
-                ctx.fillRect(15, 22, 2, 3);
-                break;
-
-            case 'ruins':
-                ctx.fillStyle = '#0d0c0a';
-                ctx.fillRect(0, 0, 32, 32);
-                ctx.fillStyle = '#2a2520';
-                ctx.fillRect(2, 8, 6, 24);
-                ctx.fillRect(24, 12, 6, 20);
-                ctx.fillStyle = '#1a1815';
-                ctx.fillRect(0, 28, 32, 4);
-                break;
-
-            case 'castle':
-                ctx.fillStyle = '#1a1815';
-                ctx.fillRect(0, 0, 32, 32);
-                ctx.fillStyle = '#2a2520';
-                // Towers
-                ctx.fillRect(4, 8, 8, 20);
-                ctx.fillRect(20, 6, 8, 22);
-                // Battlements
-                ctx.fillRect(6, 4, 4, 6);
-                ctx.fillRect(22, 2, 4, 6);
-                break;
-
-            case 'fog':
-                ctx.fillStyle = '#0a0908';
-                ctx.fillRect(0, 0, 32, 32);
-                // Fog
-                ctx.fillStyle = 'rgba(200, 200, 220, 0.2)';
-                ctx.fillRect(4, 10, 24, 12);
-                ctx.fillStyle = 'rgba(200, 200, 220, 0.1)';
-                ctx.fillRect(2, 8, 28, 16);
-                // Gate frame
-                ctx.fillStyle = '#2a2520';
-                ctx.fillRect(4, 6, 4, 22);
-                ctx.fillRect(24, 6, 4, 22);
-                break;
-
-            case 'abyss':
-                const abyssGrad = ctx.createRadialGradient(16, 16, 0, 16, 16, 20);
-                abyssGrad.addColorStop(0, '#0d0808');
-                abyssGrad.addColorStop(1, '#000000');
-                ctx.fillStyle = abyssGrad;
-                ctx.fillRect(0, 0, 32, 32);
-                // Dark particles
-                ctx.fillStyle = 'rgba(30, 20, 40, 0.5)';
-                ctx.fillRect(8, 12, 2, 2);
-                ctx.fillRect(22, 8, 2, 2);
-                ctx.fillRect(14, 20, 2, 2);
-                break;
-
-            case 'shrine':
-                ctx.fillStyle = '#151210';
-                ctx.fillRect(0, 0, 32, 32);
-                // Shrine structure
-                ctx.fillStyle = '#2a2520';
-                ctx.fillRect(8, 16, 16, 14);
-                ctx.fillStyle = '#3a3530';
-                ctx.fillRect(10, 18, 12, 10);
-                // Candles
-                ctx.fillStyle = '#ffa050';
-                ctx.fillRect(12, 16, 2, 2);
-                ctx.fillRect(18, 16, 2, 2);
-                break;
-        }
-    }
-
-    selectOption(property, optionId, container) {
-        this.character[property] = optionId;
-
-        // Update card states
-        container.querySelectorAll('.option-card').forEach(card => {
-            card.classList.remove('selected');
-            if (card.dataset.id === optionId) {
-                card.classList.add('selected');
+        for (let py = 0; py < h; py++) {
+            for (let px = 0; px < w; px++) {
+                const colorIndex = data[py][px];
+                if (colorIndex > 0 && palette[colorIndex - 1]) {
+                    const dx = x + Math.floor(px * scale);
+                    const dy = y + Math.floor(py * scale);
+                    pc.pixel(dx, dy, palette[colorIndex - 1]);
+                }
             }
+        }
+    }
+
+    drawMiniBackground(pc, id) {
+        switch (id) {
+            case 'void':
+                pc.rect(0, 0, 32, 32, '#0a0908');
+                pc.rect(8, 8, 16, 16, '#151210');
+                break;
+            case 'bonfire':
+                pc.rect(0, 0, 32, 32, '#0a0908');
+                pc.rect(14, 16, 4, 10, '#333');
+                pc.rect(12, 20, 8, 6, '#f80');
+                pc.rect(13, 18, 6, 6, '#ff0');
+                break;
+            case 'ruins':
+                pc.rect(0, 0, 32, 32, '#0d0c0a');
+                pc.rect(2, 6, 8, 24, '#252220');
+                pc.rect(22, 10, 8, 20, '#252220');
+                break;
+            case 'fog':
+                pc.rect(0, 0, 32, 32, '#0a0908');
+                pc.rect(4, 8, 24, 16, 'rgba(180,180,200,0.15)');
+                pc.rect(2, 6, 6, 24, '#252220');
+                pc.rect(24, 6, 6, 24, '#252220');
+                break;
+            case 'abyss':
+                pc.rect(0, 0, 32, 32, '#000');
+                pc.rect(8, 8, 16, 16, '#080408');
+                pc.pixel(6, 12, '#201030');
+                pc.pixel(24, 16, '#201030');
+                break;
+        }
+    }
+
+    selectOption(prop, id, grid) {
+        this.character[prop] = id;
+
+        grid.querySelectorAll('.option-card').forEach(card => {
+            card.classList.toggle('selected', card.dataset.id === id);
         });
 
-        // Update class badge for certain properties
-        if (property === 'chest') {
-            this.updateClassBadge();
-        }
+        this.updateBadge();
+        this.render();
     }
 
-    updateClassBadge() {
+    updateBadge() {
         const badge = document.getElementById('classBadge');
-        const armorClasses = {
+        const classes = {
+            'none': 'DEPRIVED',
             'rags': 'DEPRIVED',
             'tunic': 'WANDERER',
             'leather': 'THIEF',
             'chain': 'WARRIOR',
             'plate': 'KNIGHT',
-            'knight': 'KNIGHT',
-            'elite': 'ELITE KNIGHT',
+            'knight': 'ELITE KNIGHT',
             'dark': 'DARKWRAITH'
         };
-        badge.textContent = armorClasses[this.character.chest] || 'HOLLOW';
+        badge.textContent = classes[this.character.chest] || 'UNDEAD';
     }
 
-    triggerReaction() {
-        // Small reaction when changing equipment
-        this.reactionTime = performance.now();
+    setupButtons() {
+        document.getElementById('randomizeBtn').addEventListener('click', () => this.randomize());
+        document.getElementById('downloadBtn').addEventListener('click', () => this.download());
+        document.getElementById('copyBtn').addEventListener('click', () => this.copy());
+        document.getElementById('beginBtn').addEventListener('click', () => this.showToast('Your journey begins...'));
     }
 
-    initializeButtons() {
-        // Randomize button
-        document.getElementById('randomizeBtn').addEventListener('click', () => {
-            this.randomizeCharacter();
-        });
+    randomize() {
+        const pick = arr => arr[Math.floor(Math.random() * arr.length)].id;
 
-        // Download button
-        document.getElementById('downloadBtn').addEventListener('click', () => {
-            this.downloadImage();
-        });
-
-        // Copy button
-        document.getElementById('copyBtn').addEventListener('click', () => {
-            this.copyToClipboard();
-        });
-
-        // Begin button (just for show, could link to a game)
-        document.getElementById('beginBtn').addEventListener('click', () => {
-            this.showNotification('Your journey begins...');
-        });
-    }
-
-    randomizeCharacter() {
-        const randomChoice = (options) => {
-            return options[Math.floor(Math.random() * options.length)].id;
+        this.character = {
+            skin: pick(OPTIONS.skin),
+            body: pick(OPTIONS.body),
+            face: pick(OPTIONS.face),
+            hair: pick(OPTIONS.hair),
+            helmet: pick(OPTIONS.helmet),
+            chest: pick(OPTIONS.chest),
+            legs: pick(OPTIONS.legs),
+            cape: pick(OPTIONS.cape),
+            weapon: pick(OPTIONS.weapon),
+            shield: pick(OPTIONS.shield),
+            aura: pick(OPTIONS.aura),
+            background: pick(OPTIONS.background)
         };
 
-        // Randomize all options
-        this.character.skin = randomChoice(CHARACTER_OPTIONS.skin);
-        this.character.build = randomChoice(CHARACTER_OPTIONS.build);
-        this.character.face = randomChoice(CHARACTER_OPTIONS.face);
-        this.character.hair = randomChoice(CHARACTER_OPTIONS.hair);
-        this.character.helm = randomChoice(CHARACTER_OPTIONS.helm);
-        this.character.chest = randomChoice(CHARACTER_OPTIONS.chest);
-        this.character.legs = randomChoice(CHARACTER_OPTIONS.legs);
-        this.character.boots = randomChoice(CHARACTER_OPTIONS.boots);
-        this.character.cape = randomChoice(CHARACTER_OPTIONS.cape);
-        this.character.weapon = randomChoice(CHARACTER_OPTIONS.weapon);
-        this.character.shield = randomChoice(CHARACTER_OPTIONS.shield);
-        this.character.scars = randomChoice(CHARACTER_OPTIONS.scars);
-        this.character.effects = randomChoice(CHARACTER_OPTIONS.effects);
-        this.character.background = randomChoice(CHARACTER_OPTIONS.background);
-
-        // Update all UI selections
-        this.updateAllSelections();
-        this.updateClassBadge();
-        this.triggerReaction();
-    }
-
-    updateAllSelections() {
-        const mappings = {
-            'skinOptions': 'skin',
-            'buildOptions': 'build',
-            'faceOptions': 'face',
-            'hairOptions': 'hair',
-            'helmOptions': 'helm',
-            'chestOptions': 'chest',
-            'legsOptions': 'legs',
-            'bootsOptions': 'boots',
-            'capeOptions': 'cape',
-            'weaponOptions': 'weapon',
-            'shieldOptions': 'shield',
-            'scarsOptions': 'scars',
-            'effectsOptions': 'effects',
-            'backgroundOptions': 'background'
-        };
-
-        Object.entries(mappings).forEach(([containerId, property]) => {
-            const container = document.getElementById(containerId);
-            if (container) {
-                container.querySelectorAll('.option-card').forEach(card => {
-                    card.classList.remove('selected');
-                    if (card.dataset.id === this.character[property]) {
-                        card.classList.add('selected');
-                    }
+        document.querySelectorAll('.option-grid').forEach(grid => {
+            const prop = this.getGridProp(grid.id);
+            if (prop) {
+                grid.querySelectorAll('.option-card').forEach(card => {
+                    card.classList.toggle('selected', card.dataset.id === this.character[prop]);
                 });
             }
         });
+
+        this.updateBadge();
+        this.render();
+        this.showToast('Character randomized!');
     }
+
+    getGridProp(gridId) {
+        const map = {
+            skinGrid: 'skin', bodyGrid: 'body', faceGrid: 'face',
+            hairGrid: 'hair', helmetGrid: 'helmet', chestGrid: 'chest',
+            legsGrid: 'legs', capeGrid: 'cape', weaponGrid: 'weapon',
+            shieldGrid: 'shield', auraGrid: 'aura', bgGrid: 'background'
+        };
+        return map[gridId];
+    }
+
+    // =====================================
+    // RENDERING
+    // =====================================
 
     startAnimation() {
         const animate = (timestamp) => {
-            const delta = timestamp - this.lastTime;
-            this.lastTime = timestamp;
             this.time = timestamp;
-
-            // Breathing animation
-            this.breathOffset = Math.sin(timestamp / 800) * 1.5;
-
-            // Render
-            this.renderBackground();
-            this.renderCharacter();
-
-            if (this.isAnimating) {
-                requestAnimationFrame(animate);
-            }
+            this.breathOffset = Math.sin(timestamp / 600) * 0.8;
+            this.render();
+            requestAnimationFrame(animate);
         };
-
         requestAnimationFrame(animate);
     }
 
-    renderBackground() {
-        const ctx = this.bgCtx;
-        const width = this.backgroundCanvas.width;
-        const height = this.backgroundCanvas.height;
-        const bg = this.character.background;
+    render() {
+        const buf = this.buffer;
+        buf.clear();
 
-        ctx.clearRect(0, 0, width, height);
+        // Draw background
+        this.drawBackground(buf);
+
+        // Character center position
+        const cx = CANVAS_WIDTH / 2;
+        const cy = 58 + Math.round(this.breathOffset);
+
+        // Get palettes
+        const skinPal = SKIN_PALETTES[this.character.skin] || SKIN_PALETTES.hollow;
+        const bodyType = this.character.body;
+        const bodyData = SPRITES.body[bodyType];
+
+        // Calculate offsets (body sprite is 24 wide)
+        const bodyOffsetX = -12;
+        const bodyOffsetY = -40;
+
+        // Draw shadow
+        buf.ellipse(cx, cy + 6, 10, 3, 'rgba(0,0,0,0.4)');
+
+        // LAYER 1: Cape (behind character)
+        if (this.character.cape !== 'none' && SPRITES.cape[this.character.cape]) {
+            const capePal = this.character.cape === 'royal'
+                ? [...FABRIC_PALETTES.red.slice(0, 3), METAL_PALETTES.gold[2], METAL_PALETTES.gold[3]]
+                : FABRIC_PALETTES.black;
+            buf.drawSprite(cx - 12, cy - 30, SPRITES.cape[this.character.cape], capePal);
+        }
+
+        // LAYER 2: Shield (behind body, on left side)
+        if (this.character.shield !== 'none' && SPRITES.shield[this.character.shield]) {
+            const shieldPal = this.character.shield === 'crest'
+                ? [...FABRIC_PALETTES.red]
+                : METAL_PALETTES.iron;
+            buf.drawSprite(cx - 22, cy - 24, SPRITES.shield[this.character.shield], shieldPal);
+        }
+
+        // LAYER 3: Body (base character)
+        if (bodyData) {
+            buf.drawSprite(cx + bodyOffsetX, cy + bodyOffsetY, bodyData, skinPal);
+        }
+
+        // LAYER 4: Chest armor (overlay on torso)
+        if (this.character.chest !== 'none' && SPRITES.chest[this.character.chest]) {
+            const chestPal = this.getArmorPalette(this.character.chest);
+            buf.drawSprite(cx - 10, cy - 28, SPRITES.chest[this.character.chest], chestPal);
+        }
+
+        // LAYER 5: Face (if no helmet)
+        if (this.character.helmet === 'none' && SPRITES.face[this.character.face]) {
+            const facePal = ['#111', '#602020', '#ffa030', '#333', skinPal[4]];
+            buf.drawSprite(cx - 4, cy - 36, SPRITES.face[this.character.face], facePal);
+        }
+
+        // LAYER 6: Hair (if no helmet)
+        if (this.character.helmet === 'none' && this.character.hair !== 'none' && SPRITES.hair[this.character.hair]) {
+            buf.drawSprite(cx - 8, cy - 42, SPRITES.hair[this.character.hair], HAIR_PALETTES.brown);
+        }
+
+        // LAYER 7: Helmet
+        if (this.character.helmet !== 'none' && SPRITES.helmet[this.character.helmet]) {
+            const helmetPal = this.getHelmetPalette(this.character.helmet);
+            buf.drawSprite(cx - 9, cy - 42, SPRITES.helmet[this.character.helmet], helmetPal);
+        }
+
+        // LAYER 8: Weapon (on right side)
+        if (this.character.weapon !== 'none' && SPRITES.weapon[this.character.weapon]) {
+            const weaponPal = this.character.weapon === 'staff'
+                ? [...FABRIC_PALETTES.brown.slice(0, 2), '#6040a0', '#9060d0', '#c080ff']
+                : METAL_PALETTES.steel;
+            buf.drawSprite(cx + 10, cy - 40, SPRITES.weapon[this.character.weapon], weaponPal);
+        }
+
+        // LAYER 9: Aura effects
+        this.drawAura(buf, cx, cy);
+
+        // Copy buffer to display canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.drawImage(buf.canvas, 0, 0);
+    }
+
+    getArmorPalette(type) {
+        switch (type) {
+            case 'rags':
+            case 'tunic':
+            case 'leather':
+                return FABRIC_PALETTES.brown;
+            case 'chain':
+                return METAL_PALETTES.iron;
+            case 'plate':
+            case 'knight':
+                return METAL_PALETTES.steel;
+            case 'dark':
+                return METAL_PALETTES.dark;
+            default:
+                return FABRIC_PALETTES.grey;
+        }
+    }
+
+    getHelmetPalette(type) {
+        switch (type) {
+            case 'crown':
+                return METAL_PALETTES.gold;
+            case 'hood':
+                return FABRIC_PALETTES.brown;
+            case 'mask':
+                return ['#303030', '#606060', '#909090', '#c0c0c0', '#f0f0f0'];
+            default:
+                return METAL_PALETTES.iron;
+        }
+    }
+
+    drawBackground(buf) {
+        const bg = this.character.background;
+        const w = CANVAS_WIDTH;
+        const h = CANVAS_HEIGHT;
 
         switch (bg) {
             case 'void':
-                const voidGrad = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, height * 0.7);
-                voidGrad.addColorStop(0, '#1a1815');
-                voidGrad.addColorStop(1, '#0a0908');
-                ctx.fillStyle = voidGrad;
-                ctx.fillRect(0, 0, width, height);
+                buf.rect(0, 0, w, h, '#0a0908');
+                // Subtle radial gradient effect
+                for (let i = 0; i < 6; i++) {
+                    const alpha = 0.08 - i * 0.01;
+                    buf.rect(i * 2, i * 2, w - i * 4, h - i * 4, `rgba(20,18,16,${alpha})`);
+                }
+                // Ground
+                buf.rect(0, h - 12, w, 12, '#151210');
                 break;
 
             case 'bonfire':
-                ctx.fillStyle = '#0a0908';
-                ctx.fillRect(0, 0, width, height);
-                this.drawBonfire(ctx, width/2, height - 40);
+                buf.rect(0, 0, w, h, '#0a0908');
+                this.drawBonfire(buf, w / 2, h - 16);
+                // Ground
+                buf.rect(0, h - 12, w, 12, '#151210');
                 break;
 
             case 'ruins':
-                ctx.fillStyle = '#0d0c0a';
-                ctx.fillRect(0, 0, width, height);
-                this.drawRuins(ctx, width, height);
-                break;
-
-            case 'castle':
-                const castleGrad = ctx.createLinearGradient(0, 0, 0, height);
-                castleGrad.addColorStop(0, '#1a1815');
-                castleGrad.addColorStop(1, '#0d0c0a');
-                ctx.fillStyle = castleGrad;
-                ctx.fillRect(0, 0, width, height);
-                this.drawCastle(ctx, width, height);
+                buf.rect(0, 0, w, h, '#0d0c0a');
+                // Left pillar
+                buf.rect(4, 24, 14, 100, '#1a1815');
+                buf.rect(6, 26, 10, 96, '#252220');
+                buf.rect(8, 28, 6, 92, '#2d2a27');
+                // Right pillar
+                buf.rect(w - 18, 36, 14, 88, '#1a1815');
+                buf.rect(w - 16, 38, 10, 84, '#252220');
+                buf.rect(w - 14, 40, 6, 80, '#2d2a27');
+                // Archway
+                buf.rect(18, 8, w - 36, 8, '#1a1815');
+                buf.rect(20, 10, w - 40, 4, '#252220');
+                // Ground
+                buf.rect(0, h - 12, w, 12, '#151210');
                 break;
 
             case 'fog':
-                ctx.fillStyle = '#0a0908';
-                ctx.fillRect(0, 0, width, height);
-                this.drawFogGate(ctx, width, height);
+                buf.rect(0, 0, w, h, '#0a0908');
+                // Fog swirls
+                const fogPhase = Math.sin(this.time / 2000);
+                for (let i = 0; i < 5; i++) {
+                    const y = 30 + i * 18 + fogPhase * 4;
+                    const alpha = 0.04 + Math.sin(this.time / 1000 + i) * 0.02;
+                    buf.rect(10, y, w - 20, 10, `rgba(180,180,200,${alpha})`);
+                }
+                // Gate pillars
+                buf.rect(8, 10, 12, 110, '#252220');
+                buf.rect(10, 12, 8, 106, '#2d2a27');
+                buf.rect(w - 20, 10, 12, 110, '#252220');
+                buf.rect(w - 18, 12, 8, 106, '#2d2a27');
+                // Gate top
+                buf.rect(8, 6, w - 16, 8, '#252220');
+                buf.rect(10, 8, w - 20, 4, '#2d2a27');
                 break;
 
             case 'abyss':
-                const abyssGrad = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, height * 0.7);
-                abyssGrad.addColorStop(0, '#0d0808');
-                abyssGrad.addColorStop(1, '#000000');
-                ctx.fillStyle = abyssGrad;
-                ctx.fillRect(0, 0, width, height);
-                this.drawAbyssParticles(ctx, width, height);
-                break;
-
-            case 'shrine':
-                const shrineGrad = ctx.createLinearGradient(0, 0, 0, height);
-                shrineGrad.addColorStop(0, '#151210');
-                shrineGrad.addColorStop(1, '#0a0908');
-                ctx.fillStyle = shrineGrad;
-                ctx.fillRect(0, 0, width, height);
-                this.drawShrine(ctx, width, height);
+                buf.rect(0, 0, w, h, '#000000');
+                // Dark particles rising
+                for (let i = 0; i < 10; i++) {
+                    const px = (w / 10) * i + Math.sin(this.time / 1000 + i) * 4;
+                    const py = (this.time / 40 + i * 20) % h;
+                    const alpha = 0.2 + Math.sin(this.time / 500 + i) * 0.15;
+                    buf.pixel(px, h - py, `rgba(40,20,60,${alpha})`);
+                    buf.pixel(px + 1, h - py - 1, `rgba(60,30,90,${alpha * 0.6})`);
+                }
+                // Subtle purple glow from below
+                for (let i = 0; i < 4; i++) {
+                    buf.rect(0, h - 4 - i * 2, w, 2, `rgba(30,15,45,${0.1 - i * 0.02})`);
+                }
                 break;
         }
     }
 
-    drawBonfire(ctx, x, y) {
-        const flicker = Math.sin(this.time / 100) * 3;
-        const scale = 3;
+    drawBonfire(buf, x, y) {
+        const flicker = Math.sin(this.time / 80) * 2 + Math.sin(this.time / 120) * 1;
 
-        // Coiled sword
-        ctx.fillStyle = '#4a4540';
-        ctx.fillRect(x - 2 * scale, y - 50 * scale + flicker, 4 * scale, 50 * scale);
-        ctx.fillStyle = '#3a3530';
-        ctx.fillRect(x - 1 * scale, y - 45 * scale + flicker, 2 * scale, 40 * scale);
+        // Coiled sword (curved)
+        buf.rect(x - 1, y - 36, 2, 34, '#4a4540');
+        buf.rect(x, y - 34, 1, 30, '#3a3530');
+        buf.pixel(x - 1, y - 38, '#5a5550');
+        buf.pixel(x, y - 38, '#4a4540');
 
-        // Flames
-        ctx.fillStyle = `rgba(255, 147, 41, ${0.8 + Math.sin(this.time/50) * 0.2})`;
-        ctx.fillRect(x - 10 * scale, y - 20 * scale + flicker, 20 * scale, 16 * scale);
-        ctx.fillStyle = `rgba(255, 100, 20, ${0.6 + Math.sin(this.time/70) * 0.2})`;
-        ctx.fillRect(x - 8 * scale, y - 28 * scale + flicker, 16 * scale, 12 * scale);
-        ctx.fillStyle = `rgba(255, 200, 100, ${0.9 + Math.sin(this.time/30) * 0.1})`;
-        ctx.fillRect(x - 5 * scale, y - 14 * scale + flicker, 10 * scale, 8 * scale);
+        // Fire glow (background)
+        for (let r = 18; r > 4; r -= 3) {
+            const alpha = 0.12 * (18 - r) / 14;
+            buf.rect(x - r, y - r - 6, r * 2, r * 2, `rgba(255,100,20,${alpha})`);
+        }
 
-        // Light glow
-        const glowGrad = ctx.createRadialGradient(x, y - 10 * scale, 10, x, y - 10 * scale, 120);
-        glowGrad.addColorStop(0, 'rgba(255, 147, 41, 0.4)');
-        glowGrad.addColorStop(0.5, 'rgba(139, 69, 19, 0.2)');
-        glowGrad.addColorStop(1, 'transparent');
-        ctx.fillStyle = glowGrad;
-        ctx.fillRect(0, 0, this.backgroundCanvas.width, this.backgroundCanvas.height);
+        // Flames (layered)
+        const flameHeight = 14 + flicker;
+        buf.rect(x - 5, y - flameHeight, 10, flameHeight - 2, '#d04010');
+        buf.rect(x - 4, y - flameHeight + 2, 8, flameHeight - 4, '#f06020');
+        buf.rect(x - 3, y - flameHeight + 3, 6, flameHeight - 5, '#ff8040');
+        buf.rect(x - 2, y - flameHeight + 4, 4, flameHeight - 6, '#ffa060');
+        buf.rect(x - 1, y - flameHeight + 5, 2, flameHeight - 8, '#ffc090');
 
-        // Bones
-        ctx.fillStyle = '#5a5550';
-        ctx.fillRect(x - 30 * scale, y + 6 * scale, 16 * scale, 4 * scale);
-        ctx.fillRect(x + 15 * scale, y + 10 * scale, 14 * scale, 3 * scale);
+        // Embers
+        for (let i = 0; i < 4; i++) {
+            const ex = x - 4 + Math.sin(this.time / 150 + i * 1.5) * 5;
+            const ey = y - 16 - (this.time / 80 + i * 8) % 24;
+            const alpha = 1 - ((this.time / 80 + i * 8) % 24) / 24;
+            buf.pixelAlpha(ex, ey, '#ff8040', alpha);
+        }
+
+        // Bones around fire
+        buf.rect(x - 14, y + 2, 10, 2, '#5a5550');
+        buf.rect(x - 12, y + 1, 2, 4, '#4a4540');
+        buf.rect(x + 6, y + 3, 8, 2, '#5a5550');
+        buf.rect(x + 10, y + 2, 2, 4, '#4a4540');
     }
 
-    drawRuins(ctx, width, height) {
-        const scale = 3;
-        ctx.fillStyle = '#2a2520';
-        // Broken pillars
-        ctx.fillRect(20, height - 160, 30 * scale, 160);
-        ctx.fillRect(width - 50 * scale, height - 140, 30 * scale, 140);
-        // Rubble
-        ctx.fillStyle = '#1a1815';
-        ctx.fillRect(10, height - 30, 80 * scale, 30);
-        ctx.fillRect(width - 90 * scale, height - 25, 70 * scale, 25);
-        // Cracks
-        ctx.fillStyle = '#151210';
-        ctx.fillRect(35, height - 100, 4, 50);
-        ctx.fillRect(45, height - 80, 4, 35);
+    drawAura(buf, cx, cy) {
+        const aura = this.character.aura;
+        if (aura === 'none') return;
+
+        const t = this.time;
+
+        switch (aura) {
+            case 'ember':
+                // Ember particles rising around character
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2 + t / 800;
+                    const radius = 10 + Math.sin(t / 300 + i) * 4;
+                    const px = cx + Math.cos(angle) * radius;
+                    const py = cy - 10 - (t / 50 + i * 12) % 50;
+                    const alpha = 1 - ((t / 50 + i * 12) % 50) / 50;
+                    if (alpha > 0) {
+                        buf.pixelAlpha(px, py, `#ff${Math.floor(100 + i * 15).toString(16).padStart(2, '0')}00`, alpha);
+                    }
+                }
+                // Eye glow
+                if (this.character.helmet === 'none') {
+                    const eyeGlow = 0.4 + Math.sin(t / 200) * 0.3;
+                    buf.pixelAlpha(cx - 3, cy - 34, '#ff8040', eyeGlow);
+                    buf.pixelAlpha(cx + 2, cy - 34, '#ff8040', eyeGlow);
+                }
+                break;
+
+            case 'souls':
+                // Blue soul wisps orbiting
+                for (let i = 0; i < 6; i++) {
+                    const angle = t / 1200 + i * 1.05;
+                    const radius = 14 + Math.sin(t / 400 + i) * 5;
+                    const px = cx + Math.cos(angle) * radius;
+                    const py = cy - 18 + Math.sin(angle) * radius * 0.4;
+                    const alpha = 0.5 + Math.sin(t / 250 + i) * 0.3;
+                    buf.pixelAlpha(px, py, '#60b0ff', alpha);
+                    buf.pixelAlpha(px + 1, py, '#a0d0ff', alpha * 0.6);
+                }
+                break;
+
+            case 'curse':
+                // Purple curse marks pulsing
+                for (let i = 0; i < 5; i++) {
+                    const px = cx - 8 + (i % 3) * 8 + Math.sin(t / 350 + i) * 2;
+                    const py = cy - 25 + Math.floor(i / 3) * 20 + Math.cos(t / 350 + i) * 2;
+                    const alpha = 0.4 + Math.sin(t / 200 + i) * 0.3;
+                    buf.pixelAlpha(px, py, '#9050c0', alpha);
+                }
+                // Curse mark on body
+                buf.pixelAlpha(cx + 4, cy - 30, '#6030a0', 0.3 + Math.sin(t / 300) * 0.2);
+                break;
+
+            case 'holy':
+                // Golden light rays emanating
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2 + t / 3000;
+                    const len = 10 + Math.sin(t / 350 + i) * 4;
+                    for (let j = 0; j < len; j++) {
+                        const px = cx + Math.cos(angle) * (8 + j);
+                        const py = cy - 20 + Math.sin(angle) * (4 + j * 0.5);
+                        const alpha = (1 - j / len) * 0.35;
+                        buf.pixelAlpha(px, py, '#fff0a0', alpha);
+                    }
+                }
+                // Halo effect
+                const haloAlpha = 0.2 + Math.sin(t / 400) * 0.1;
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const px = cx + Math.cos(angle) * 8;
+                    const py = cy - 46 + Math.sin(angle) * 2;
+                    buf.pixelAlpha(px, py, '#ffd040', haloAlpha);
+                }
+                break;
+        }
     }
 
-    drawCastle(ctx, width, height) {
-        ctx.fillStyle = '#1a1815';
-        // Main tower
-        ctx.fillRect(width/2 - 50, 30, 100, 130);
-        // Battlements
-        for (let i = 0; i < 6; i++) {
-            ctx.fillRect(width/2 - 45 + i * 18, 15, 12, 20);
-        }
-        // Side towers
-        ctx.fillRect(30, 80, 50, 100);
-        ctx.fillRect(width - 80, 70, 50, 110);
-        // Ground
-        ctx.fillStyle = '#151210';
-        ctx.fillRect(0, height - 50, width, 50);
-    }
+    // =====================================
+    // EXPORT
+    // =====================================
 
-    drawFogGate(ctx, width, height) {
-        // Fog swirls
-        for (let i = 0; i < 5; i++) {
-            const alpha = 0.1 + Math.sin(this.time / 1000 + i) * 0.05;
-            ctx.fillStyle = `rgba(200, 200, 220, ${alpha})`;
-            const y = height/2 + Math.sin(this.time / 2000 + i * 0.8) * 40;
-            const x = width/2 + Math.cos(this.time / 1500 + i * 1.2) * 50;
-            ctx.fillRect(x - 60, y - 30, 120, 60);
-        }
-
-        // Gate frame
-        ctx.fillStyle = '#2a2520';
-        ctx.fillRect(40, 50, 25, height - 100);
-        ctx.fillRect(width - 65, 50, 25, height - 100);
-        ctx.fillRect(40, 35, width - 80, 25);
-    }
-
-    drawAbyssParticles(ctx, width, height) {
-        // Dark particles rising
-        for (let i = 0; i < 12; i++) {
-            const alpha = 0.3 + Math.sin(this.time / 1000 + i * 0.5) * 0.2;
-            ctx.fillStyle = `rgba(30, 20, 40, ${alpha})`;
-            const x = (width/12) * i + Math.sin(this.time / 1000 + i) * 15;
-            const y = height - ((this.time / 50 + i * 50) % height);
-            ctx.fillRect(x, y, 6, 6);
-        }
-    }
-
-    drawShrine(ctx, width, height) {
-        const scale = 2;
-        // Stone shrine structure
-        ctx.fillStyle = '#2a2520';
-        ctx.fillRect(width/2 - 70, height - 100, 140, 100);
-        ctx.fillStyle = '#3a3530';
-        ctx.fillRect(width/2 - 60, height - 90, 120, 85);
-
-        // Altar
-        ctx.fillStyle = '#4a4540';
-        ctx.fillRect(width/2 - 40, height - 60, 80, 15);
-
-        // Candles
-        const flicker = Math.sin(this.time / 80);
-        ctx.fillStyle = '#5a5550';
-        ctx.fillRect(width/2 - 55, height - 80, 8, 20);
-        ctx.fillRect(width/2 + 47, height - 80, 8, 20);
-        ctx.fillStyle = `rgba(255, 180, 80, ${0.8 + flicker * 0.2})`;
-        ctx.fillRect(width/2 - 57, height - 88, 12, 10);
-        ctx.fillRect(width/2 + 45, height - 88, 12, 10);
-    }
-
-    renderCharacter() {
-        const ctx = this.charCtx;
-        const width = this.characterCanvas.width;
-        const height = this.characterCanvas.height;
-
-        ctx.clearRect(0, 0, width, height);
-
-        // Scale for main display
-        spriteRenderer.pixelSize = 6;
-
-        // Calculate breathing offset
-        const breathY = Math.round(this.breathOffset);
-
-        // Reaction animation
-        let reactionOffset = 0;
-        if (this.reactionTime) {
-            const elapsed = this.time - this.reactionTime;
-            if (elapsed < 300) {
-                reactionOffset = Math.sin(elapsed / 30) * 3;
-            } else {
-                this.reactionTime = null;
-            }
-        }
-
-        // Center position
-        const baseX = 25;
-        const baseY = 8 + breathY;
-
-        ctx.save();
-        ctx.translate(0, reactionOffset);
-
-        // Draw cape (behind)
-        if (this.character.cape !== 'none') {
-            spriteRenderer.drawCape(ctx, this.character.cape, baseX, baseY, true);
-        }
-
-        // Draw body
-        const bodyInfo = spriteRenderer.drawBody(ctx, this.character.skin, this.character.build, breathY);
-
-        // Draw legs
-        spriteRenderer.drawLegs(ctx, this.character.legs, baseX, baseY);
-
-        // Draw boots
-        spriteRenderer.drawBoots(ctx, this.character.boots, this.character.skin, baseX, baseY);
-
-        // Draw chest armor
-        spriteRenderer.drawChest(ctx, this.character.chest, baseX, baseY, bodyInfo.bodyWidth);
-
-        // Draw shield (behind arm)
-        if (this.character.shield !== 'none') {
-            spriteRenderer.drawShield(ctx, this.character.shield, baseX, baseY);
-        }
-
-        // Draw face (if no helm)
-        if (this.character.helm === 'none') {
-            spriteRenderer.drawFace(ctx, this.character.face, this.character.skin, baseX, baseY);
-
-            // Draw hair (if no helm)
-            if (this.character.hair !== 'none') {
-                const hairOption = CHARACTER_OPTIONS.hair.find(h => h.id === this.character.hair);
-                spriteRenderer.drawHair(ctx, this.character.hair, hairOption?.color || 'black', baseX, baseY);
-            }
-        }
-
-        // Draw helm
-        if (this.character.helm !== 'none') {
-            spriteRenderer.drawHelm(ctx, this.character.helm, baseX, baseY);
-        }
-
-        // Draw weapon
-        if (this.character.weapon !== 'none') {
-            spriteRenderer.drawWeapon(ctx, this.character.weapon, baseX, baseY);
-        }
-
-        // Draw scars
-        if (this.character.scars !== 'none' && this.character.helm === 'none') {
-            spriteRenderer.drawScars(ctx, this.character.scars, baseX, baseY);
-        }
-
-        // Draw effects
-        if (this.character.effects !== 'none') {
-            spriteRenderer.drawEffects(ctx, this.character.effects, baseX, baseY, this.time);
-        }
-
-        // Draw cape (front clasp)
-        if (this.character.cape !== 'none') {
-            spriteRenderer.drawCape(ctx, this.character.cape, baseX, baseY, false);
-        }
-
-        ctx.restore();
-    }
-
-    downloadImage() {
-        // Create export canvas combining both layers
+    download() {
         const exportCanvas = document.createElement('canvas');
-        exportCanvas.width = this.characterCanvas.width;
-        exportCanvas.height = this.characterCanvas.height;
+        exportCanvas.width = CANVAS_WIDTH * 4;
+        exportCanvas.height = CANVAS_HEIGHT * 4;
         const exportCtx = exportCanvas.getContext('2d');
+        exportCtx.imageSmoothingEnabled = false;
+        exportCtx.drawImage(this.buffer.canvas, 0, 0, exportCanvas.width, exportCanvas.height);
 
-        // Draw background then character
-        exportCtx.drawImage(this.backgroundCanvas, 0, 0);
-        exportCtx.drawImage(this.characterCanvas, 0, 0);
-
-        // Download
         const link = document.createElement('a');
         link.download = 'hollow_warrior.png';
         link.href = exportCanvas.toDataURL('image/png');
         link.click();
 
-        this.showNotification('Image saved to your realm');
+        this.showToast('Image saved!');
     }
 
-    async copyToClipboard() {
+    async copy() {
         try {
-            // Create export canvas
             const exportCanvas = document.createElement('canvas');
-            exportCanvas.width = this.characterCanvas.width;
-            exportCanvas.height = this.characterCanvas.height;
+            exportCanvas.width = CANVAS_WIDTH * 4;
+            exportCanvas.height = CANVAS_HEIGHT * 4;
             const exportCtx = exportCanvas.getContext('2d');
+            exportCtx.imageSmoothingEnabled = false;
+            exportCtx.drawImage(this.buffer.canvas, 0, 0, exportCanvas.width, exportCanvas.height);
 
-            exportCtx.drawImage(this.backgroundCanvas, 0, 0);
-            exportCtx.drawImage(this.characterCanvas, 0, 0);
-
-            const blob = await new Promise(resolve => {
-                exportCanvas.toBlob(resolve, 'image/png');
-            });
-
-            await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob })
-            ]);
-
-            this.showNotification('Image copied to clipboard');
-        } catch (err) {
-            this.showNotification('Failed to copy - try downloading');
+            const blob = await new Promise(resolve => exportCanvas.toBlob(resolve, 'image/png'));
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            this.showToast('Copied to clipboard!');
+        } catch (e) {
+            this.showToast('Copy failed');
         }
     }
 
-    showNotification(message) {
-        const notification = document.getElementById('notification');
-        const notificationText = document.getElementById('notificationText');
-
-        notificationText.textContent = message;
-        notification.classList.remove('hidden');
-
-        setTimeout(() => {
-            notification.classList.add('hidden');
-        }, 2500);
+    showToast(message) {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
     }
 }
 
-// Initialize when DOM is ready
+// Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    window.characterCreator = new CharacterCreator();
+    window.app = new HollowForge();
 });
