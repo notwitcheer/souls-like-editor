@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hollow Forge LPC - Demo Mode</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        #gameCanvas {
+            width: 192px !important;
+            height: 256px !important;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .demo-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(45deg, #d4a82a, #f0c850);
+            color: #0f0e0d;
+            text-align: center;
+            padding: 8px;
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 2px;
+            z-index: 10000;
+        }
+
+        .generate-btn {
+            position: fixed;
+            top: 40px;
+            right: 20px;
+            background: var(--gold);
+            color: var(--bg-void);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            cursor: pointer;
+            z-index: 10001;
+        }
+
+        .app-container {
+            margin-top: 35px;
+        }
+
+        .fallback-sprite {
+            background: linear-gradient(45deg, #444, #666);
+            border: 2px solid var(--border-gold);
+            border-radius: 4px;
+        }
+
+        .asset-status {
+            position: absolute;
+            bottom: 40px;
+            left: 16px;
+            right: 16px;
+            background: rgba(0,0,0,0.8);
+            color: var(--text-light);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-banner">
+        HOLLOW FORGE LPC DEMO - Generate test assets to see full functionality
+    </div>
+
+    <button class="generate-btn" onclick="generateAllAssets()">
+        GENERATE ASSETS
+    </button>
+
+    <div class="app-container">
+        <!-- Left Panel - Character Preview -->
+        <div class="preview-panel">
+            <div class="preview-frame">
+                <div class="class-badge" id="classBadge">UNDEAD</div>
+                <div class="character-display">
+                    <canvas id="gameCanvas"></canvas>
+                    <div class="asset-status" id="assetStatus">
+                        Demo Mode - Click "GENERATE ASSETS" to create test spritesheets
+                    </div>
+                </div>
+                <button class="randomize-btn" id="randomizeBtn">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M13 1h-2v2h2v2h2V3a2 2 0 0 0-2-2zM3 1a2 2 0 0 0-2 2v2h2V3h2V1H3zm10 10h2v2a2 2 0 0 1-2 2h-2v-2h2v-2zM3 13H1v-2h2v2H1v2h2a2 2 0 0 0 2-2v-2H3v2zm4-6a1 1 0 1 1 2 0 1 1 0 0 1-2 0zm-3 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm6 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    RANDOMIZE
+                </button>
+            </div>
+
+            <div class="action-buttons">
+                <button class="action-btn download-btn" id="downloadBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    DOWNLOAD
+                </button>
+                <button class="action-btn copy-btn" id="copyBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    COPY
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel - Customization -->
+        <div class="editor-panel">
+            <nav class="tab-nav">
+                <button class="tab-btn active" data-tab="body">BODY</button>
+                <button class="tab-btn" data-tab="head">HEAD</button>
+                <button class="tab-btn" data-tab="armor">ARMOR</button>
+                <button class="tab-btn" data-tab="weapons">WEAPONS</button>
+                <button class="tab-btn" data-tab="effects">SCENES</button>
+            </nav>
+
+            <div class="tab-panels">
+                <!-- Body Tab -->
+                <div class="tab-panel active" data-panel="body">
+                    <section class="option-section">
+                        <h3>Body Type & Race</h3>
+                        <div class="option-grid" id="bodyGrid"></div>
+                    </section>
+                    <section class="option-section">
+                        <h3>Hair Style</h3>
+                        <div class="option-grid" id="hairGrid"></div>
+                    </section>
+                </div>
+
+                <!-- Head Tab -->
+                <div class="tab-panel" data-panel="head">
+                    <section class="option-section">
+                        <h3>Head Gear & Helmets</h3>
+                        <div class="option-grid" id="helmetGrid"></div>
+                    </section>
+                </div>
+
+                <!-- Armor Tab -->
+                <div class="tab-panel" data-panel="armor">
+                    <section class="option-section">
+                        <h3>Chest Armor</h3>
+                        <div class="option-grid" id="chestGrid"></div>
+                    </section>
+                    <section class="option-section">
+                        <h3>Leg Armor</h3>
+                        <div class="option-grid" id="legsGrid"></div>
+                    </section>
+                </div>
+
+                <!-- Weapons Tab -->
+                <div class="tab-panel" data-panel="weapons">
+                    <section class="option-section">
+                        <h3>Main Hand Weapons</h3>
+                        <div class="option-grid" id="weaponGrid"></div>
+                    </section>
+                </div>
+
+                <!-- Backgrounds Tab -->
+                <div class="tab-panel" data-panel="effects">
+                    <section class="option-section">
+                        <h3>Background Scenes</h3>
+                        <div class="option-grid" id="bgGrid"></div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="panel-footer">
+                <button class="begin-btn" id="beginBtn">FORGE YOUR LEGEND</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Scripts -->
+    <script src="lpc-system.js"></script>
+    <script src="generate-test-assets.js"></script>
+
+    <script>
+        // Enhanced demo version with fallback rendering
+        class HollowForgeLPCDemo extends HollowForgeLPC {
+            constructor() {
+                super();
+                this.demoMode = true;
+                this.setupDemoFallbacks();
+                this.updateAssetStatus();
+            }
+
+            setupDemoFallbacks() {
+                // Override asset loading to use fallback sprites
+                const originalLoadAsset = this.lpcRenderer.assetLoader.loadAsset.bind(this.lpcRenderer.assetLoader);
+
+                this.lpcRenderer.assetLoader.loadAsset = async (path, id) => {
+                    try {
+                        return await originalLoadAsset(path, id);
+                    } catch (error) {
+                        // Create fallback sprite
+                        return this.createFallbackSprite(id);
+                    }
+                };
+            }
+
+            createFallbackSprite(id) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 64 * 13;
+                canvas.height = 64 * 21;
+                const ctx = canvas.getContext('2d');
+
+                // Create a simple colored rectangle as fallback
+                const colors = {
+                    male_light: '#FDBCB4',
+                    skeleton: '#E8E8E8',
+                    leather_vest: '#8B4513',
+                    sword: '#C0C0C0',
+                    castle: '#654321'
+                };
+
+                const color = colors[id] || '#888888';
+
+                // Draw simple test frames
+                for (let row = 0; row < 21; row++) {
+                    for (let col = 0; col < 13; col++) {
+                        const x = col * 64;
+                        const y = row * 64;
+
+                        ctx.fillStyle = color;
+                        ctx.fillRect(x + 20, y + 20, 24, 24);
+
+                        // Add simple features for body
+                        if (id.includes('male') || id.includes('skeleton')) {
+                            ctx.fillStyle = '#000';
+                            ctx.fillRect(x + 26, y + 24, 2, 2);
+                            ctx.fillRect(x + 36, y + 24, 2, 2);
+                        }
+                    }
+                }
+
+                const img = new Image();
+                img.src = canvas.toDataURL();
+                return new Promise(resolve => {
+                    img.onload = () => resolve(img);
+                });
+            }
+
+            updateAssetStatus() {
+                const status = document.getElementById('assetStatus');
+                if (status) {
+                    status.textContent = this.demoMode
+                        ? 'Demo Mode - Using fallback sprites'
+                        : 'LPC Assets Loaded';
+                }
+            }
+
+            async preloadInitialAssets() {
+                // In demo mode, always succeed
+                console.log('Demo mode: Using fallback assets');
+                this.updateAssetStatus();
+            }
+
+            showToast(message) {
+                super.showToast(`[DEMO] ${message}`);
+            }
+        }
+
+        // Asset generation function
+        function generateAllAssets() {
+            if (window.testGenerator) {
+                const categories = ['body', 'hair', 'armor', 'weapon'];
+                let generated = 0;
+
+                categories.forEach(category => {
+                    const assets = TEST_ASSETS[category];
+                    assets.forEach((asset, index) => {
+                        setTimeout(() => {
+                            window.testGenerator.generateAsset(category, asset.color, asset.name);
+                            generated++;
+
+                            if (generated === 1) {
+                                document.querySelector('.demo-banner').textContent =
+                                    'GENERATING TEST ASSETS - Check your downloads folder';
+                            }
+                        }, index * 200);
+                    });
+                });
+
+                setTimeout(() => {
+                    document.querySelector('.demo-banner').textContent =
+                        'TEST ASSETS GENERATED - Place them in assets/sprites/ folders to use';
+                }, 3000);
+            }
+        }
+
+        // Initialize demo version
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof LPCCharacterRenderer !== 'undefined') {
+                window.app = new HollowForgeLPCDemo();
+            } else {
+                console.error('LPC system not loaded');
+            }
+        });
+    </script>
+</body>
+</html>

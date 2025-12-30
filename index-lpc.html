@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hollow Forge LPC - Character Creator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* LPC-specific adjustments */
+        #gameCanvas {
+            width: 192px !important;
+            height: 256px !important;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .character-display {
+            padding: 15px !important;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 40px;
+            left: 16px;
+            background: rgba(0,0,0,0.8);
+            color: var(--text-light);
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
+            font-size: 12px;
+            letter-spacing: 2px;
+        }
+
+        .animation-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .anim-btn {
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--border-subtle);
+            background: var(--bg-card);
+            color: var(--text-dim);
+            border-radius: 2px;
+            font-size: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .anim-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-gold);
+        }
+
+        .anim-btn.active {
+            background: var(--gold);
+            color: var(--bg-void);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left Panel - Character Preview -->
+        <div class="preview-panel">
+            <div class="preview-frame">
+                <div class="class-badge" id="classBadge">UNDEAD</div>
+                <div class="status-indicator" id="statusIndicator">LPC MODE</div>
+                <div class="character-display">
+                    <canvas id="gameCanvas"></canvas>
+                    <div class="loading-overlay" id="loadingOverlay">
+                        LOADING ASSETS...
+                    </div>
+                </div>
+                <div class="animation-controls" id="animControls">
+                    <button class="anim-btn active" data-anim="idle" title="Idle">I</button>
+                    <button class="anim-btn" data-anim="walk" title="Walk">W</button>
+                    <button class="anim-btn" data-anim="slash" title="Attack">A</button>
+                    <button class="anim-btn" data-anim="cast" title="Cast">C</button>
+                </div>
+                <button class="randomize-btn" id="randomizeBtn">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M13 1h-2v2h2v2h2V3a2 2 0 0 0-2-2zM3 1a2 2 0 0 0-2 2v2h2V3h2V1H3zm10 10h2v2a2 2 0 0 1-2 2h-2v-2h2v-2zM3 13H1v-2h2v2H1v2h2a2 2 0 0 0 2-2v-2H3v2zm4-6a1 1 0 1 1 2 0 1 1 0 0 1-2 0zm-3 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm6 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                    </svg>
+                    RANDOMIZE
+                </button>
+            </div>
+
+            <div class="action-buttons">
+                <button class="action-btn download-btn" id="downloadBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    DOWNLOAD
+                </button>
+                <button class="action-btn copy-btn" id="copyBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    COPY
+                </button>
+            </div>
+        </div>
+
+        <!-- Right Panel - Customization -->
+        <div class="editor-panel">
+            <nav class="tab-nav">
+                <button class="tab-btn active" data-tab="body">BODY</button>
+                <button class="tab-btn" data-tab="head">HEAD</button>
+                <button class="tab-btn" data-tab="armor">ARMOR</button>
+                <button class="tab-btn" data-tab="weapons">WEAPONS</button>
+                <button class="tab-btn" data-tab="effects">SCENES</button>
+            </nav>
+
+            <div class="tab-panels">
+                <!-- Body Tab -->
+                <div class="tab-panel active" data-panel="body">
+                    <section class="option-section">
+                        <h3>Body Type & Race</h3>
+                        <div class="option-grid" id="bodyGrid"></div>
+                    </section>
+                    <section class="option-section">
+                        <h3>Hair Style</h3>
+                        <div class="option-grid" id="hairGrid"></div>
+                    </section>
+                </div>
+
+                <!-- Head Tab -->
+                <div class="tab-panel" data-panel="head">
+                    <section class="option-section">
+                        <h3>Head Gear & Helmets</h3>
+                        <div class="option-grid" id="helmetGrid"></div>
+                    </section>
+                </div>
+
+                <!-- Armor Tab -->
+                <div class="tab-panel" data-panel="armor">
+                    <section class="option-section">
+                        <h3>Chest Armor</h3>
+                        <div class="option-grid" id="chestGrid"></div>
+                    </section>
+                    <section class="option-section">
+                        <h3>Leg Armor</h3>
+                        <div class="option-grid" id="legsGrid"></div>
+                    </section>
+                </div>
+
+                <!-- Weapons Tab -->
+                <div class="tab-panel" data-panel="weapons">
+                    <section class="option-section">
+                        <h3>Main Hand Weapons</h3>
+                        <div class="option-grid" id="weaponGrid"></div>
+                    </section>
+                </div>
+
+                <!-- Backgrounds Tab -->
+                <div class="tab-panel" data-panel="effects">
+                    <section class="option-section">
+                        <h3>Background Scenes</h3>
+                        <div class="option-grid" id="bgGrid"></div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="panel-footer">
+                <button class="begin-btn" id="beginBtn">FORGE YOUR LEGEND</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Scripts -->
+    <script src="lpc-system.js"></script>
+    <script src="app-lpc.js"></script>
+
+    <script>
+        // Enhanced animation controls
+        document.addEventListener('DOMContentLoaded', () => {
+            // Animation button controls
+            const animBtns = document.querySelectorAll('.anim-btn');
+            animBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const anim = btn.dataset.anim;
+
+                    // Update active button
+                    animBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    // Set animation if app is ready
+                    if (window.app && window.app.lpcRenderer) {
+                        window.app.lpcRenderer.setAnimation(anim);
+                        window.app.currentAnimation = anim;
+                    }
+                });
+            });
+
+            // Loading state management
+            const loadingOverlay = document.getElementById('loadingOverlay');
+
+            // Show loading initially
+            loadingOverlay.style.display = 'flex';
+
+            // Hide loading after a delay (simulating asset loading)
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 1500);
+        });
+    </script>
+</body>
+</html>
